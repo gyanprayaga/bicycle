@@ -4,6 +4,7 @@ from typing import List
 import numpy as np
 import scipy as sp
 from scipy.spatial.transform import Rotation as R
+import math
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -35,8 +36,10 @@ class Bicycle:
 
         # consider using dicts for storing vars
         self._structure = {
-            'frontwheel': [],
-            'rearwheel': []
+            'front_wheel': [],
+            'rear_wheel': [],
+            'frame_axle': [],
+            'fork_and_steering column': []
         }
 
         pass
@@ -48,16 +51,26 @@ class Bicycle:
         self._assembleSteeringColumn()
         self._assembleFrameAxle()
 
-    def __assembleWheel(self, show=True) -> List:
+    def structure(self):
+        """Get the bicycle structure"""
+        return self._structure
+
+    @staticmethod
+    def __assemble_wheel(radius: float = 0.5) -> np.ndarray:
         """Utility function which returns point cloud for a new wheel"""
-        
 
+        num_rim = 50 # for now
 
-        # show the wheel
-        if show:
-            plt.show()
-        
-        return []
+        spoke_angles = np.linspace(0.0, 2.0 * np.pi, num_rim)
+
+        # create a unit vector from the wheel's center
+        yz = np.array([np.sin(spoke_angles), np.cos(spoke_angles)])
+
+        # create our rim point cloud by scaling the unit vector by the radius
+        xyz = radius * (np.vstack((np.zeros(num_rim), yz))) # we use vstack to fill out the first row of the matrix
+        xyz = (xyz.transpose()) # becomes a zero column
+
+        return xyz # i dont think we need the spoke array
 
     def _assembleSteeringColumn(self):
         """Adds an axle directly above the front wheel"""
@@ -69,20 +82,49 @@ class Bicycle:
 
     def _assembleFrontWheel(self):
         """Draw the front wheel vectors"""
-        wheel = self.__assembleWheel(self)
-        self._structure += self.__translate(wheel, 20, 20, 20)
+        wheel = self.__assemble_wheel(self)
+        self._structure['front_wheel'] += self.__translate(wheel, 0, -2, 0)
 
     def _assembleRearWheel(self):
         """Draw the rear wheel vectors"""
-        wheel = self.__assembleWheel(self)
-        self._structure += self.__translate(wheel, -20, 20, 20)        
-        
-    def __translate(self, vectors, x, y, z):
-        """Utility function which translates the given vectors a certain amount"""
-        return translatedVectors
+        wheel = self.__assemble_wheel(self)
 
-    def tilt(self, degree):
-        """Tilt the bicycle some degrees in the x axis"""
+    def __translate(self, vector, x, y, z):
+        """Utility function which translates the given vector a certain amount"""
+        return vector + np.array([x,y,z])
+
+    @staticmethod
+    def _euler_rodrigues(axis, degrees):
+        """Produces a rotation matrix for a given rotation angle
+
+            Uses the Euler-Rodriguez equation for rotating a matrix:
+            https://en.wikipedia.org/wiki/Euler%E2%80%93Rodrigues_formula
+        """
+        theta = np.radians(degrees)
+        axis = np.asarray(axis)
+        axis = axis / math.sqrt(np.dot(axis, axis))
+        a = math.cos(theta / 2.0)
+        b, c, d = -axis * math.sin(theta / 2.0)
+        aa, bb, cc, dd = a * a, b * b, c * c, d * d
+        bc, ad, ac, ab, bd, cd = b * c, a * d, a * c, a * b, b * d, c * d
+        return np.array([[aa + bb - cc - dd, 2 * (bc + ad), 2 * (bd - ac)],
+                         [2 * (bc - ad), aa + cc - bb - dd, 2 * (cd + ab)],
+                         [2 * (bd + ac), 2 * (cd - ab), aa + dd - bb - cc]])
+
+    def rotate(self, part, degrees):
+        """Rotate a part of the bicycle some degrees"""
+        rotation_matrix = self._euler_rodrigues('z', degrees)
+        self.__structure[part] = np.dot(rotation_matrix, self.__structure[part])
+
+    def tilt(self, degrees):
+        """Tilt the bicycle some degrees (about the y axis)"""
+        rotation_matrix = self._euler_rodrigues('y', degrees)
+
+        # iterate through bicycle structure and rotate each constitutent vector
+        # TODO: better way to decouple this functionality -> what if I just want to tilt the front wheel?
+        for partName, partStructure in self.__structure.__dict__.items():
+            self.__structure[partName] = np.dot(rotation_matrix, partStructure)
+
         pass
 
     def steer(self, degree):
@@ -157,14 +199,18 @@ class Control:
 
 
 if __name__ == '__main__':
-    bicycle = Bicycle()
+    bike = Bicycle()
+
+    # Lets start by building the bike's frame and wheels
+    bike.assemble()
+
+
+
 
     # In this routine, we accelerate slowly, coast for 10 seconds, and then decelerate.
 
-    bicycle.accelerate(1) # acceleration intensity, 0.0 -> 1.0
-    bicycle.engageAutobalance()
-    time.sleep(5)
-    bicycle.brake(0.5) # brake actuation: 0.0 -> 1.0
-    bicycle.disengageAutobalance()
-
-main()
+    # bicycle.accelerate(1) # acceleration intensity, 0.0 -> 1.0
+    # bicycle.engageAutobalance()
+    # time.sleep(5)
+    # bicycle.brake(0.5) # brake actuation: 0.0 -> 1.0
+    # bicycle.disengageAutobalance()

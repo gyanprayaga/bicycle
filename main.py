@@ -1,10 +1,10 @@
 import time
+import math
 from typing import List
 
 import numpy as np
 import scipy as sp
 from scipy.spatial.transform import Rotation as R
-import math
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -24,7 +24,7 @@ import matplotlib.pyplot as plt
 #         self.bicycle = 1
 
 # consider moving some utility methods out of Bicycle class if we want to use them for control
-# for example, assembly of front wheel 
+# for example, assembly of front wheel
 
 
 class Bicycle:
@@ -37,9 +37,18 @@ class Bicycle:
         # consider using dicts for storing vars
         self._structure = {
             'front_wheel': [],
-            'rear_wheel': [],
+            'rear_wheel': [], # these are all x,y,z matrices composed of 1+ vectors
             'frame_axle': [],
-            'fork_and_steering column': []
+            'fork_and_steering_column': [],
+        }
+
+        # these could be useful when we want to get out important values
+        self._points = {
+            'center_of_mass': np.array([]),
+            'center_of_rear_wheel': np.array([]),
+            'contact_point_of_rear_wheel': np.array([0, 0, 0]),
+            'center_of_front_wheel': np.array([]),
+            'fork_point': np.array([3, 3, 3])
         }
 
         pass
@@ -74,10 +83,12 @@ class Bicycle:
 
     def _assembleSteeringColumn(self):
         """Adds an axle directly above the front wheel"""
+        self._structure['fork_and_steering_column'] = self._points['fork_point'] - self._points['center_of_front_wheel']
         pass
 
     def _assembleFrameAxle(self):
-        """Adds axle which connects the rear wheel to the steering column"""
+        """Adds axle which connects the rear wheel to the fork point"""
+        self._structure['frame_axle'] = self._points['fork_point'] - self._points['center_of_rear_wheel']
         pass
 
     def _assembleFrontWheel(self):
@@ -91,7 +102,7 @@ class Bicycle:
 
     def __translate(self, vector, x, y, z):
         """Utility function which translates the given vector a certain amount"""
-        return vector + np.array([x,y,z])
+        return vector + np.array([x, y, z])
 
     @staticmethod
     def _euler_rodrigues(axis, degrees):

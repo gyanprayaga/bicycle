@@ -1,6 +1,6 @@
 import time
 import math
-from typing import List, Optional
+from typing import List, Optional, Dict
 
 import numpy as np
 import scipy as sp
@@ -40,14 +40,14 @@ class Bicycle:
         self._structure = {
             'front_wheel': [],
             'rear_wheel': [], # these are all x,y,z matrices composed of 1+ vectors
-            # 'frame_axle': [],
+            'frame_axle': [],
             # 'fork_and_steering_column': [],
         }
 
         # these could be useful when we want to get out important values
         self._points = {
             'center_of_mass': np.array([0, 1, 2]), # near the saddle
-            'center_of_rear_wheel': np.array([]),
+            'center_of_rear_wheel': np.array([0, 0.5, 0]),
             'contact_point_of_rear_wheel': np.array([0, 0, 0]),
             'center_of_front_wheel': np.array([]),
             'fork_point': np.array([3, 3, 3])
@@ -87,20 +87,23 @@ class Bicycle:
 
         return xyz  # i dont think we need the spoke array
 
-    def _assembleSteeringColumn(self):
-        """Adds an axle directly above the front wheel"""
-        self._structure['fork_and_steering_column'] = self._points['fork_point'] - self._points['center_of_front_wheel']
-        pass
+    # def _assembleSteeringColumn(self):
+    #     """Adds an axle directly above the front wheel"""
+    #     self._structure['fork_and_steering_column'] = self._points['fork_point'] - self._points['center_of_front_wheel']
+    #     pass
 
     def _assembleFrameAxle(self):
         """Adds axle which connects the rear wheel to the fork point"""
-        self._structure['frame_axle'] = self._points['fork_point'] - self._points['center_of_rear_wheel']
+        self._structure['frame_axle'] = np.array([self._points['center_of_rear_wheel'], self._points['fork_point']])
         pass
 
     def _assembleFrontWheel(self):
         """Draw the front wheel vectors"""
         wheel = self.__assemble_wheel()
         self._structure['front_wheel'] = self.__translate(wheel, 0, 2, 0)
+
+        # also plot the center
+        self._points['center_of_front_wheel'] = np.array([0, 2, 0.5])
 
     def _assembleRearWheel(self):
         """Draw the rear wheel vectors"""
@@ -138,6 +141,17 @@ class Bicycle:
             for partName, partStructure in self._structure.__dict__.items():
                 self._structure[partName] = self._rotate_vectors(y_axis, self._structure[partName], radians)
 
+            # also tilt the points about the y-axis accordingly
+            for pointName, pointVector in self._points.__dict__.items():
+                self._points[pointName] = self._rotate_vectors(y_axis, self._points[pointName], radians)
+
+    def map(self) -> Dict:
+        """Simply returns the structure and points dictionary"""
+        return {
+            'structure': self._structure,
+            'points': self._points
+        }
+
     def steer(self, degree):
         """Turn the front wheel of the bicycle some some degrees in the x axis"""
         pass
@@ -173,6 +187,7 @@ class Bicycle:
         ax.add_collection3d(Poly3DCollection(verts, facecolors='g'))
 
         # plot the structure by iterating over each part in the dictionary
+
         for part in self._structure.keys():
             part_array = self._structure[part]
             x = part_array[:, 0]
@@ -198,6 +213,11 @@ class Bicycle:
         """Engage the 'brakes' to decelerate the bicycle"""
         if intensity == 0 or intensity > 1:
             raise ValueError("Intensity must be between 0 and 1")
+
+    def torque(self):
+        """Calculating the torque from the steering angle with a certain acceleration"""
+        # Use the angle between the steering axis and the ...
+        # Then can calculate the vectors accordingly and see
 
     def engageAutobalance(self):
         """Engage the autobalance system as a new thread"""
@@ -259,6 +279,8 @@ if __name__ == '__main__':
 
     bike._assembleRearWheel()
     bike._assembleFrontWheel()
+    bike._assembleFrameAxle()
+    # bike._assembleSteeringColumn()
     bike.rotate(40, 'front_wheel')
     bike.tilt(15, 'front_wheel') # TODO: we need to tilt about the new axis vector
 

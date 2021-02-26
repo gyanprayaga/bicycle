@@ -41,7 +41,7 @@ class Bicycle:
             'front_wheel': [],
             'rear_wheel': [], # these are all x,y,z matrices composed of 1+ vectors
             'frame_axle': [],
-            # 'fork_and_steering_column': [],
+            'fork_and_steering_column': [],
         }
 
         # these could be useful when we want to get out important values
@@ -50,10 +50,8 @@ class Bicycle:
             'center_of_rear_wheel': np.array([0, 0.5, 0]),
             'contact_point_of_rear_wheel': np.array([0, 0, 0]),
             'center_of_front_wheel': np.array([]),
-            'fork_point': np.array([3, 3, 3])
+            'fork_point': np.array([0, 1.75, 1.5])
         }
-
-        pass
 
     def assemble(self):
         """One-time operation to assemble the bike's parts"""
@@ -87,10 +85,10 @@ class Bicycle:
 
         return xyz  # i dont think we need the spoke array
 
-    # def _assembleSteeringColumn(self):
-    #     """Adds an axle directly above the front wheel"""
-    #     self._structure['fork_and_steering_column'] = self._points['fork_point'] - self._points['center_of_front_wheel']
-    #     pass
+    def _assembleSteeringColumn(self):
+        """Adds an axle directly above the front wheel"""
+        self._structure['fork_and_steering_column'] = np.array([self._points['center_of_front_wheel'], self._points['fork_point']])
+        pass
 
     def _assembleFrameAxle(self):
         """Adds axle which connects the rear wheel to the fork point"""
@@ -100,14 +98,18 @@ class Bicycle:
     def _assembleFrontWheel(self):
         """Draw the front wheel vectors"""
         wheel = self.__assemble_wheel()
-        self._structure['front_wheel'] = self.__translate(wheel, 0, 2, 0)
+        self._structure['front_wheel'] = self.__translate(wheel, 0, 2, 0.5)
 
-        # also plot the center
         self._points['center_of_front_wheel'] = np.array([0, 2, 0.5])
 
     def _assembleRearWheel(self):
         """Draw the rear wheel vectors"""
-        self._structure['rear_wheel'] = self.__assemble_wheel()
+        wheel = self.__assemble_wheel()
+
+        self._points['center_of_rear_wheel'] = np.array([0, 0, 0.5])
+
+        # we want the contact point to be on the origin
+        self._structure['rear_wheel'] = self.__translate(wheel, 0, 0, 0.5)
 
     def __translate(self, vector, x, y, z):
         """Utility function which translates the given vector a certain amount"""
@@ -127,7 +129,7 @@ class Bicycle:
 
         self._structure[part] = self._rotate_vectors(z_axis, self._structure[part], radians)
 
-    def tilt(self, degrees: float, part: Optional[str]):
+    def tilt(self, degrees: float, part: Optional[str] = None):
         """Tilt the bicycle or one of its parts some degrees (about the y axis)"""
         y_axis = [0, 1, 0]
         radians = np.radians(degrees)
@@ -138,11 +140,11 @@ class Bicycle:
         else:
             # iterate through bicycle structure and rotate each constitutent vector
             # TODO: better way to decouple this functionality -> what if I just want to tilt the front wheel?
-            for partName, partStructure in self._structure.__dict__.items():
+            for partName, partStructure in self._structure.items():
                 self._structure[partName] = self._rotate_vectors(y_axis, self._structure[partName], radians)
 
             # also tilt the points about the y-axis accordingly
-            for pointName, pointVector in self._points.__dict__.items():
+            for pointName, pointVector in self._points.items():
                 self._points[pointName] = self._rotate_vectors(y_axis, self._points[pointName], radians)
 
     def map(self) -> Dict:
@@ -168,7 +170,7 @@ class Bicycle:
         """Re-render an image of the bike system "on-demand"""
 
         # dimensions of the axes
-        minmax = [-5.0, 5.0]
+        minmax = [-2.0, 5.0]
         minmaxz = [-3.0, 3.0]
 
         ax.set_xlim(minmax)
@@ -181,7 +183,7 @@ class Bicycle:
         ax.set_zlabel('z')
 
         # these are the vertices of the plane, in an array
-        verts = [[(0.0, 0.0, 0.0), (4.0, 0.0, 0.0), (4.0, 4.0, 0.0), (0.0, 4.0, 0.0)]]
+        verts = [[(0.0, -2.0, 0.0), (4.0, 0.0, 0.0), (4.0, 4.0, 0.0), (0.0, 4.0, 0.0)]]
 
         # make a collection and add it to the axes instance
         ax.add_collection3d(Poly3DCollection(verts, facecolors='g'))
@@ -275,17 +277,16 @@ if __name__ == '__main__':
     fig, ax = plt.subplots(subplot_kw={'projection': '3d'})
 
     # Lets start by building the bike's frame and wheels
-    # bike.assemble()
+    bike.assemble()
 
-    bike._assembleRearWheel()
-    bike._assembleFrontWheel()
-    bike._assembleFrameAxle()
-    # bike._assembleSteeringColumn()
-    bike.rotate(40, 'front_wheel')
-    bike.tilt(15, 'front_wheel') # TODO: we need to tilt about the new axis vector
+    bike.tilt(15)
+    # bike.rotate(40, 'front_wheel') # TODO: we need to rotate about the new axis vector
+    # bike.rotate(40, 'fork_and_steering_column')
+
+    print(bike.map()) # see how our points (e.g. COM) have changed
 
     # See what monstrosity we have manufactured
-    bike.visualize(ax)
+    # bike.visualize(ax)
 
 
 

@@ -138,6 +138,8 @@ class Bicycle:
             # just tilt the one part
             self._structure[part] = self._rotate_vectors(y_axis, self._structure[part], radians)
         else:
+            # can we avoid this for loop
+            
             # iterate through bicycle structure and rotate each constitutent vector
             # TODO: better way to decouple this functionality -> what if I just want to tilt the front wheel?
             for partName, partStructure in self._structure.items():
@@ -165,6 +167,16 @@ class Bicycle:
     def pedal(self, distance):
         """Pedal the bicycle forward a specified distance in meters"""
         pass
+
+    def trail(self):
+        """Get the trail of the bike"""
+        x = self._structure['fork_and_steering_column'][1]  # vector to the fork point
+        y = np.array([1.0, 1.0, 1.0])  # a vector in the ground plane
+
+        # breakpoint()
+
+        # this is equivalent to the project of vector x onto vector y
+        return np.dot(x, y) / np.linalg.norm(y)
 
     def visualize(self, ax):
         """Re-render an image of the bike system "on-demand"""
@@ -283,10 +295,11 @@ if __name__ == '__main__':
     # bike.rotate(40, 'front_wheel') # TODO: we need to rotate about the new axis vector
     # bike.rotate(40, 'fork_and_steering_column')
 
-    print(bike.map()) # see how our points (e.g. COM) have changed
+    print('map: ', bike.map()) # see how our points (e.g. COM) have changed
+    print('trail:', bike.trail())
 
     # See what monstrosity we have manufactured
-    # bike.visualize(ax)
+    bike.visualize(ax)
 
 
 

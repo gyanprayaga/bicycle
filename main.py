@@ -169,14 +169,46 @@ class Bicycle:
         pass
 
     def trail(self):
-        """Get the trail of the bike"""
-        x = self._structure['fork_and_steering_column'][1]  # vector to the fork point
-        y = np.array([1.0, 1.0, 1.0])  # a vector in the ground plane
+        """Get the trail of the bike. This is computed as a one-off measurement when the bike is first assembled."""
+        # extend the steering col onto the ground plane
+        # u = self._structure['fork_and_steering_column']  # vector u
+        # v = np.array([0, 5, 0])  # vector v:
+        #
+        # # Task: Project vector u on vector v
+        #
+        # # finding norm of the vector v
+        # v_norm = np.sqrt(sum(v ** 2))
+        #
+        # # Apply the formula as mentioned above
+        # # for projecting a vector onto another vector
+        # # find dot product using np.dot()
+        # proj_of_u_on_v = (np.dot(u, v) / v_norm ** 2) * v
+        #
+        # # find origin to intersectin
+        # origin_to_intersection = proj_of_u_on_v
 
-        # breakpoint()
+        # NOTE: dont use project ;)
 
-        # this is equivalent to the project of vector x onto vector y
-        return np.dot(x, y) / np.linalg.norm(y)
+        # extend the steering column vector onto the plain
+
+        cfw = self._points['center_of_front_wheel']
+        fsc = self._structure['fork_and_steering_column']
+
+        v20 = cfw
+        n_hat = fsc / np.linalg.norm(fsc) # unit vector for steering column
+
+        v30 = v20 - n_hat * (- (k_hat * v20)/(n_hat * k*hat)) # what is k hat??
+
+        origin_to_intersection = v30
+
+        # then find vector from origin to center of wheel on ground
+
+        # keep x and y but set z = 0
+        center_of_front_wheel_on_ground = np.array([cfw[0,], cfw[1,], 0])
+
+        trail = origin_to_intersection - center_of_front_wheel_on_ground
+
+        return trail
 
     def visualize(self, ax):
         """Re-render an image of the bike system "on-demand"""
@@ -282,6 +314,9 @@ class Control:
 
 
 
+
+
+
 if __name__ == '__main__':
     bike = Bicycle()
 
@@ -299,9 +334,7 @@ if __name__ == '__main__':
     print('trail:', bike.trail())
 
     # See what monstrosity we have manufactured
-    bike.visualize(ax)
-
-
+    # bike.visualize(ax)
 
 
 

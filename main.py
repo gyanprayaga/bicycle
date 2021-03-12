@@ -193,11 +193,14 @@ class Bicycle:
 
         cfw = self._points['center_of_front_wheel']
         fsc = self._structure['fork_and_steering_column']
+        fsc_concise = fsc[1] - fsc[0]
 
         v20 = cfw
-        n_hat = fsc / np.linalg.norm(fsc) # unit vector for steering column
+        
+        n_hat = fsc_concise / np.linalg.norm(fsc) # unit vector for steering column
+        k_hat = np.array([0, 0, 1])
 
-        v30 = v20 - n_hat * (- (k_hat * v20)/(n_hat * k*hat)) # what is k hat??
+        v30 = v20 - n_hat * (- (np.dot(k_hat, v20))/(np.dot(n_hat, k_hat))) # what is k hat??
 
         origin_to_intersection = v30
 
@@ -206,7 +209,10 @@ class Bicycle:
         # keep x and y but set z = 0
         center_of_front_wheel_on_ground = np.array([cfw[0,], cfw[1,], 0])
 
-        trail = origin_to_intersection - center_of_front_wheel_on_ground
+        trail_v = origin_to_intersection - center_of_front_wheel_on_ground
+
+        # trail is the magnitude of the trail vector above
+        trail = np.linalg.norm(trail_v)
 
         return trail
 
@@ -326,7 +332,7 @@ if __name__ == '__main__':
     # Lets start by building the bike's frame and wheels
     bike.assemble()
 
-    bike.tilt(15)
+    # bike.tilt(15)
     # bike.rotate(40, 'front_wheel') # TODO: we need to rotate about the new axis vector
     # bike.rotate(40, 'fork_and_steering_column')
 

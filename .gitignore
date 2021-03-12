@@ -15,5 +15,9 @@ ENV/
 env.bak/
 venv.bak/
 
+# Jupyter notebook
+.ipynb_checkpoints
+.idea
+
 # Pycharm stuff
 .idea/*

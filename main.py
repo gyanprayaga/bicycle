@@ -1,38 +1,19 @@
-import time
-import math
 from typing import List, Optional, Dict
 
 import numpy as np
-import scipy as sp
 from scipy.spatial.transform import Rotation as R
 
-import matplotlib as mpl
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
-
-# class Environment:
-#     """
-#     The manufactured environment created by the physics engine
-
-#     This also includes the rendered system.
-#     """
-
-#     def __init__(self):
-#         """
-#         Load the physics engine.
-#         """
-#         self.world: int = 0
-#         self.bicycle = 1
-
-# consider moving some utility methods out of Bicycle class if we want to use them for control
-# for example, assembly of front wheel
 
 
 class Bicycle:
     def __init__(self):
-        self._autobalance = False
-        
+        """
+        We construct the bicycle with two dictionaries, one for the bike's structure and
+        another for useful points in the bike's geometry
+        """
+
         # create an empty vector list
         self._structure = []  
 
@@ -55,10 +36,10 @@ class Bicycle:
 
     def assemble(self):
         """One-time operation to assemble the bike's parts"""
-        self._assembleFrontWheel()
-        self._assembleRearWheel()
-        self._assembleSteeringColumn()
-        self._assembleFrameAxle()
+        self._assemble_front_wheel()
+        self._assemble_rear_wheel()
+        self._assemble_steering_column()
+        self._assemble_frame_axle()
 
     def structure(self):
         """Get the bicycle structure"""
@@ -67,8 +48,7 @@ class Bicycle:
     @staticmethod
     def __assemble_wheel(radius=0.5):
         """Utility function which returns point cloud for a new wheel"""
-
-        num_rim = 50  # for now
+        num_rim = 50  # used in making the spokes
 
         spoke_angles = np.linspace(0.0, 2.0 * np.pi, num_rim)
 
@@ -83,26 +63,26 @@ class Bicycle:
 
         xyz = (xyz.transpose())  # becomes a zero column
 
-        return xyz  # i dont think we need the spoke array
+        return xyz
 
-    def _assembleSteeringColumn(self):
+    def _assemble_steering_column(self):
         """Adds an axle directly above the front wheel"""
         self._structure['fork_and_steering_column'] = np.array([self._points['center_of_front_wheel'], self._points['fork_point']])
         pass
 
-    def _assembleFrameAxle(self):
+    def _assemble_frame_axle(self):
         """Adds axle which connects the rear wheel to the fork point"""
         self._structure['frame_axle'] = np.array([self._points['center_of_rear_wheel'], self._points['fork_point']])
         pass
 
-    def _assembleFrontWheel(self):
+    def _assemble_front_wheel(self):
         """Draw the front wheel vectors"""
         wheel = self.__assemble_wheel()
         self._structure['front_wheel'] = self.__translate(wheel, 0, 2, 0.5)
 
         self._points['center_of_front_wheel'] = np.array([0, 2, 0.5])
 
-    def _assembleRearWheel(self):
+    def _assemble_rear_wheel(self):
         """Draw the rear wheel vectors"""
         wheel = self.__assemble_wheel()
 
@@ -111,10 +91,12 @@ class Bicycle:
         # we want the contact point to be on the origin
         self._structure['rear_wheel'] = self.__translate(wheel, 0, 0, 0.5)
 
+    @staticmethod
     def __translate(self, vector, x, y, z):
         """Utility function which translates the given vector a certain amount"""
         return vector + np.array([x, y, z])
 
+    @staticmethod
     def _rotate_vectors(self, axis_of_rotation: List[float], vectors, angle):
         """Rotate the given vectors some angle (radians) about a specified axis of rotation"""
         n = axis_of_rotation / np.linalg.norm(axis_of_rotation) # this takes the norm (measures the size of the eleents)
@@ -138,10 +120,7 @@ class Bicycle:
             # just tilt the one part
             self._structure[part] = self._rotate_vectors(y_axis, self._structure[part], radians)
         else:
-            # can we avoid this for loop
-            
-            # iterate through bicycle structure and rotate each constitutent vector
-            # TODO: better way to decouple this functionality -> what if I just want to tilt the front wheel?
+            # iterate through bicycle structure and rotate each constituent vector
             for partName, partStructure in self._structure.items():
                 self._structure[partName] = self._rotate_vectors(y_axis, self._structure[partName], radians)
 
@@ -156,41 +135,15 @@ class Bicycle:
             'points': self._points
         }
 
-    def steer(self, degree):
-        """Turn the front wheel of the bicycle some some degrees in the x axis"""
-        pass
-
-    def calculateCOM(self):
-        """Calculates and returns the center of mass (COM) of the bicycle in x, y, and z coords"""
-        pass
-
-    def pedal(self, distance):
-        """Pedal the bicycle forward a specified distance in meters"""
-        pass
-
     def trail(self):
-        """Get the trail of the bike. This is computed as a one-off measurement when the bike is first assembled."""
-        # extend the steering col onto the ground plane
-        # u = self._structure['fork_and_steering_column']  # vector u
-        # v = np.array([0, 5, 0])  # vector v:
-        #
-        # # Task: Project vector u on vector v
-        #
-        # # finding norm of the vector v
-        # v_norm = np.sqrt(sum(v ** 2))
-        #
-        # # Apply the formula as mentioned above
-        # # for projecting a vector onto another vector
-        # # find dot product using np.dot()
-        # proj_of_u_on_v = (np.dot(u, v) / v_norm ** 2) * v
-        #
-        # # find origin to intersectin
-        # origin_to_intersection = proj_of_u_on_v
+        """
+        Gets the trail of the bike. This is computed as a one-off measurement when the bike is first assembled.
 
-        # NOTE: dont use project ;)
+        Trail is computed using this vector math:
 
-        # extend the steering column vector onto the plain
+        (1) ...
 
+        """
         cfw = self._points['center_of_front_wheel']
         fsc = self._structure['fork_and_steering_column']
         fsc_concise = fsc[1] - fsc[0]
@@ -239,7 +192,6 @@ class Bicycle:
         ax.add_collection3d(Poly3DCollection(verts, facecolors='g'))
 
         # plot the structure by iterating over each part in the dictionary
-
         for part in self._structure.keys():
             part_array = self._structure[part]
             x = part_array[:, 0]
@@ -249,27 +201,6 @@ class Bicycle:
 
         # have to explicitly call this to show the plot in shell
         plt.show()
-
-    # def calculateCOM(self):
-    #     """Calculate where the COM is by iterating over each part of the structure"""
-    #     # this should only be done once at the beginning, after that we simply manipulate that point
-    #
-    #     # initially: start with a vector up to a point, call that COM (it will probably be at the bicycle seat)
-    #     # later we can do this dynamically if we add a rider, and want to take into account the frame
-    #
-    #     # - assembly
-    #     # - calculateCOM, prefill into the self._points._COM
-    #     # - manipualation
-
-    def brake(self, intensity: float):
-        """Engage the 'brakes' to decelerate the bicycle"""
-        if intensity == 0 or intensity > 1:
-            raise ValueError("Intensity must be between 0 and 1")
-
-    def torque(self):
-        """Calculating the torque from the steering angle with a certain acceleration"""
-        # Use the angle between the steering axis and the ...
-        # Then can calculate the vectors accordingly and see
 
     def engageAutobalance(self):
         """Engage the autobalance system as a new thread"""
@@ -321,8 +252,6 @@ class Control:
 
 
 
-
-
 if __name__ == '__main__':
     bike = Bicycle()
 
@@ -331,23 +260,12 @@ if __name__ == '__main__':
 
     # Lets start by building the bike's frame and wheels
     bike.assemble()
+    print('trail:', bike.trail()) # get the trail after assembly
 
-    # bike.tilt(15)
-    # bike.rotate(40, 'front_wheel') # TODO: we need to rotate about the new axis vector
-    # bike.rotate(40, 'fork_and_steering_column')
+    # tilt the bike 15 degrees (as an example)
+    bike.tilt(15)
 
     print('map: ', bike.map()) # see how our points (e.g. COM) have changed
-    print('trail:', bike.trail())
 
-    # See what monstrosity we have manufactured
-    # bike.visualize(ax)
-
-
-
-    # In this routine, we accelerate slowly, coast for 10 seconds, and then decelerate.
-
-    # bicycle.accelerate(1) # acceleration intensity, 0.0 -> 1.0
-    # bicycle.engageAutobalance()
-    # time.sleep(5)
-    # bicycle.brake(0.5) # brake actuation: 0.0 -> 1.0
-    # bicycle.disengageAutobalance()
+    # render the bicycle
+    bike.visualize(ax)

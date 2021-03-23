@@ -1,3 +1,14 @@
+"""
+Title: Digital Bicycle
+Author: Gyan Prayaga
+Date: March 22, 2021
+Description:
+The Bicycle class exposes an interface for assembly, manipulation, visualization, and description
+(trail and center of mass) of a digital bicycle.
+
+The included example script assembles the bicycle, tilts it 15 degrees, and then reads its structure and point data.
+"""
+import time
 from typing import List, Optional, Dict
 
 import numpy as np
@@ -202,7 +213,7 @@ class Bicycle:
         # have to explicitly call this to show the plot in shell
         plt.show()
 
-    def engageAutobalance(self):
+    def engage_autobalance(self):
         """Engage the autobalance system as a new thread"""
         print("Engaging autobalance system")
         if self._autobalance is True:
@@ -222,7 +233,7 @@ class Bicycle:
             else:
                 break
 
-    def disengageAutobalance(self):
+    def disengage_autobalance(self):
         """Disengage the autobalance system"""
         self._autobalance = False # this should stop 
         print("Disengaging autobalance system")
@@ -233,39 +244,59 @@ class Control:
         """
         The control system responsible for stabilizing the bicycle
         """
-        
-        def stabilize(self, case):
-            """
-            Entry point
-            """
-            if case == 1:
-                self._model1solver()
-            else:
-                self.model2solver()
+        pass
 
-        def _model1solver():
-            return True
+    def stabilize(self, case):
+        """
+        Scaffolding for an entry point based on some case
 
-        def _model2solver():
-            return True
+        :param case: "Case" is used ambiguously here to mean the context by which a specific equation would be engaged.
+        For example, we might use Eq 16 (see report) with tilt angle and tilt velocity as inputs in a specific context,
+        but an entirely different physics model in a different context.
 
+        Proposed steps for implementing the control system include:
+        (1) Some asynchronous/multiprocessing Python execution, such that the solver can respond dynamically to
+        the changing tilt angle in a separate thread
+        (2) Some mechanism to continuously output data about the bicycle's structure/point vectors, as well as
+        re-render the visualization
 
+        Due to the complexity of this programming problem, the integration between the control system and the digital
+        bicycle has not yet been finished. However, this scaffolding has been left as a future project.
+        """
+        if case == 1:
+            self._model_1_solver()
+        else:
+            self._model_2_solver()
+
+    def _model_1_solver(self):
+        """Scaffolding for a solver under some condition X"""
+        pass
+
+    def _model_2_solver(self):
+        """Scaffolding for a solver under some condition Y"""
+        pass
 
 
 if __name__ == '__main__':
+    """
+    Example script for assembly of the digital bicycle, applying some transformations, and visualizing it.
+    """
     bike = Bicycle()
 
     # setup visualization to inspect bicycle
     fig, ax = plt.subplots(subplot_kw={'projection': '3d'})
 
-    # Lets start by building the bike's frame and wheels
+    # building the bike's frame and wheels
     bike.assemble()
-    print('trail:', bike.trail()) # get the trail after assembly
 
-    # tilt the bike 15 degrees (as an example)
+    # get the trail after assembly
+    print('trail:', bike.trail())
+
+    # tilt the bike 15 degrees
     bike.tilt(15)
 
-    print('map: ', bike.map()) # see how our points (e.g. COM) have changed
+    # see how our points (e.g. COM) have changed after the transformation
+    print('map: ', bike.map())
 
     # render the bicycle
     bike.visualize(ax)

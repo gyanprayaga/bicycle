@@ -28,17 +28,17 @@ class Bicycle:
         # create an empty vector list
         self._structure = []  
 
-        # consider using dicts for storing vars
+        # 3D matrices for the bicycle's parts
         self._structure = {
             'front_wheel': [],
-            'rear_wheel': [], # these are all x,y,z matrices composed of 1+ vectors
+            'rear_wheel': [],
             'frame_axle': [],
             'fork_and_steering_column': [],
         }
 
-        # these could be useful when we want to get out important values
+        # vectors for important points
         self._points = {
-            'center_of_mass': np.array([0, 1, 2]), # near the saddle
+            'center_of_mass': np.array([0, 1, 2]),  # arbitrary, we can put near the saddle
             'center_of_rear_wheel': np.array([0, 0.5, 0]),
             'contact_point_of_rear_wheel': np.array([0, 0, 0]),
             'center_of_front_wheel': np.array([]),
@@ -150,10 +150,7 @@ class Bicycle:
         """
         Gets the trail of the bike. This is computed as a one-off measurement when the bike is first assembled.
 
-        Trail is computed using this vector math:
-
-        (1) ...
-
+        For the full sequence of operations used to calculate the trail, refer to Section 3.2.1 in the report.
         """
         cfw = self._points['center_of_front_wheel']
         fsc = self._structure['fork_and_steering_column']
@@ -161,14 +158,12 @@ class Bicycle:
 
         v20 = cfw
         
-        n_hat = fsc_concise / np.linalg.norm(fsc) # unit vector for steering column
+        n_hat = fsc_concise / np.linalg.norm(fsc)  # unit vector for steering column
         k_hat = np.array([0, 0, 1])
 
         v30 = v20 - n_hat * (- (np.dot(k_hat, v20))/(np.dot(n_hat, k_hat))) # what is k hat??
 
         origin_to_intersection = v30
-
-        # then find vector from origin to center of wheel on ground
 
         # keep x and y but set z = 0
         center_of_front_wheel_on_ground = np.array([cfw[0,], cfw[1,], 0])
@@ -213,12 +208,24 @@ class Bicycle:
         # have to explicitly call this to show the plot in shell
         plt.show()
 
+
+class Control:
+    def __init__(self):
+        """
+        The control system responsible for stabilizing the bicycle
+        """
+        self._autobalance = False
+
     def engage_autobalance(self):
-        """Engage the autobalance system as a new thread"""
+        """
+        Engage the autobalance system as a new thread
+
+        Note: This is scaffolding for an auto-balancing process which will run when the bicycle is instantiated.
+        """
         print("Engaging autobalance system")
         if self._autobalance is True:
             raise AssertionError("Autobalance is already engaged")
-        
+
         self._autobalance = True
 
         # start autobalance loop
@@ -226,7 +233,6 @@ class Bicycle:
         while True:
             # run loop
             if self._autobalance:
-                # TODO: figure out how to break out of the while loop!
                 print(f'Balancing... {i}')
                 time.sleep(1)
                 i += 1
@@ -234,17 +240,9 @@ class Bicycle:
                 break
 
     def disengage_autobalance(self):
-        """Disengage the autobalance system"""
-        self._autobalance = False # this should stop 
+        """Disengage the autobalance system (scaffolding)"""
+        self._autobalance = False
         print("Disengaging autobalance system")
-
-
-class Control:
-    def __init__(self):
-        """
-        The control system responsible for stabilizing the bicycle
-        """
-        pass
 
     def stabilize(self, case):
         """

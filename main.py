@@ -1,3 +1,14 @@
+"""
+Title: Digital Bicycle
+Author: Gyan Prayaga
+Date: March 22, 2021
+Description:
+The Bicycle class exposes an interface for assembly, manipulation, visualization, and description
+(trail and center of mass) of a digital bicycle.
+
+The included example script assembles the bicycle, tilts it 15 degrees, and then reads its structure and point data.
+"""
+import time
 from typing import List, Optional, Dict
 
 import numpy as np
@@ -8,46 +19,61 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 
 class Bicycle:
+
+    """
+    The Bicycle class enables us to create a digital clone of a simplified bicycle. The goal of this class was to run
+    various real-world transformations (e.g. tilting the bicycle, turning the front wheel, etc.) and get out
+    useful data about the bicycle's points and structure. In the future, a separate Control class would interface
+    with the Bicycle class to stabilize it.
+
+    Bicycle lifecycle:
+    (1) The Bicycle class is instantiated
+    (2) Bicycle is assembled using assemble()
+    (3) We can get information about the bicycle's poitns or structure matrices at any point by calling map()
+    or structure() respectively
+    (4) We can get the bicycle's trail using trail()
+    (5) We can tilt or rotate any bicycle parts using the tilt() or rotate() methods respectively
+    (6) Finally, we can see the bicycle and any transformations applied to it by running visualize(), which
+    runs a separate MatPlotLib Python executable
+    """
     def __init__(self):
         """
-        We construct the bicycle with two dictionaries, one for the bike's structure and
-        another for useful points in the bike's geometry
+        We construct the bicycle with two dictionaries:
+        (1) _structure{} for the bike's structure and
+        (2): _points{} for useful points in the bike's geometry
         """
 
-        # create an empty vector list
-        self._structure = []  
-
-        # consider using dicts for storing vars
+        # 3D matrices for the bicycle's parts
         self._structure = {
             'front_wheel': [],
-            'rear_wheel': [], # these are all x,y,z matrices composed of 1+ vectors
+            'rear_wheel': [],
             'frame_axle': [],
             'fork_and_steering_column': [],
         }
 
-        # these could be useful when we want to get out important values
+        # vectors for important points, relative to the origin (0,0,0)
         self._points = {
-            'center_of_mass': np.array([0, 1, 2]), # near the saddle
+            'center_of_mass': np.array([0, 1, 2]),  # arbitrary, we can put near the saddle
             'center_of_rear_wheel': np.array([0, 0.5, 0]),
             'contact_point_of_rear_wheel': np.array([0, 0, 0]),
             'center_of_front_wheel': np.array([]),
-            'fork_point': np.array([0, 1.75, 1.5])
+            'handlebars': np.array([0, 1.75, 1.5])
         }
 
     def assemble(self):
-        """One-time operation to assemble the bike's parts"""
+        """One-time operation to assemble the bike's parts. Assembles front wheel, rear wheel, steering column,
+        and frame axle (in that order)."""
         self._assemble_front_wheel()
         self._assemble_rear_wheel()
         self._assemble_steering_column()
         self._assemble_frame_axle()
 
-    def structure(self):
-        """Get the bicycle structure"""
+    def structure(self) -> Dict:
+        """Get the bicycle structure dictionary"""
         return self._structure
 
-    @staticmethod
-    def __assemble_wheel(radius=0.5):
-        """Utility function which returns point cloud for a new wheel"""
+    def __assemble_wheel(self, radius=0.5):
+        """Utility function which returns the rim point vectors for a new wheel"""
         num_rim = 50  # used in making the spokes
 
         spoke_angles = np.linspace(0.0, 2.0 * np.pi, num_rim)
@@ -67,12 +93,12 @@ class Bicycle:
 
     def _assemble_steering_column(self):
         """Adds an axle directly above the front wheel"""
-        self._structure['fork_and_steering_column'] = np.array([self._points['center_of_front_wheel'], self._points['fork_point']])
+        self._structure['fork_and_steering_column'] = np.array([self._points['center_of_front_wheel'], self._points['handlebars']])
         pass
 
     def _assemble_frame_axle(self):
         """Adds axle which connects the rear wheel to the fork point"""
-        self._structure['frame_axle'] = np.array([self._points['center_of_rear_wheel'], self._points['fork_point']])
+        self._structure['frame_axle'] = np.array([self._points['center_of_rear_wheel'], self._points['handlebars']])
         pass
 
     def _assemble_front_wheel(self):
@@ -91,12 +117,10 @@ class Bicycle:
         # we want the contact point to be on the origin
         self._structure['rear_wheel'] = self.__translate(wheel, 0, 0, 0.5)
 
-    @staticmethod
     def __translate(self, vector, x, y, z):
         """Utility function which translates the given vector a certain amount"""
         return vector + np.array([x, y, z])
 
-    @staticmethod
     def _rotate_vectors(self, axis_of_rotation: List[float], vectors, angle):
         """Rotate the given vectors some angle (radians) about a specified axis of rotation"""
         n = axis_of_rotation / np.linalg.norm(axis_of_rotation) # this takes the norm (measures the size of the eleents)
@@ -112,7 +136,12 @@ class Bicycle:
         self._structure[part] = self._rotate_vectors(z_axis, self._structure[part], radians)
 
     def tilt(self, degrees: float, part: Optional[str] = None):
-        """Tilt the bicycle or one of its parts some degrees (about the y axis)"""
+        """Tilt the bicycle or one of its parts some degrees (about the y axis)
+
+        The degrees can be any value from 0-360.
+
+        The part can be any part in the structure dictionary (e.g. 'front_wheel', 'fork_and_steering_columm')
+        """
         y_axis = [0, 1, 0]
         radians = np.radians(degrees)
 
@@ -139,10 +168,7 @@ class Bicycle:
         """
         Gets the trail of the bike. This is computed as a one-off measurement when the bike is first assembled.
 
-        Trail is computed using this vector math:
-
-        (1) ...
-
+        For the full sequence of operations used to calculate the trail, refer to Section 3.2.1 in the report.
         """
         cfw = self._points['center_of_front_wheel']
         fsc = self._structure['fork_and_steering_column']
@@ -150,14 +176,12 @@ class Bicycle:
 
         v20 = cfw
         
-        n_hat = fsc_concise / np.linalg.norm(fsc) # unit vector for steering column
+        n_hat = fsc_concise / np.linalg.norm(fsc)  # unit vector for steering column
         k_hat = np.array([0, 0, 1])
 
-        v30 = v20 - n_hat * (- (np.dot(k_hat, v20))/(np.dot(n_hat, k_hat))) # what is k hat??
+        v30 = v20 - n_hat * (- (np.dot(k_hat, v20))/(np.dot(n_hat, k_hat)))
 
         origin_to_intersection = v30
-
-        # then find vector from origin to center of wheel on ground
 
         # keep x and y but set z = 0
         center_of_front_wheel_on_ground = np.array([cfw[0,], cfw[1,], 0])
@@ -202,12 +226,25 @@ class Bicycle:
         # have to explicitly call this to show the plot in shell
         plt.show()
 
-    def engageAutobalance(self):
-        """Engage the autobalance system as a new thread"""
+
+class Control:
+    def __init__(self):
+        """
+        The control system responsible for stabilizing the bicycle
+        """
+        self._autobalance = False
+
+    def engage_autobalance(self):
+        """
+        Engage the autobalance system as a new thread
+
+        Note: This is scaffolding for an auto-balancing process which will run when the bicycle is instantiated.
+        Refer to the stabilize() method for more detail on how this process could be designed.
+        """
         print("Engaging autobalance system")
         if self._autobalance is True:
             raise AssertionError("Autobalance is already engaged")
-        
+
         self._autobalance = True
 
         # start autobalance loop
@@ -215,57 +252,68 @@ class Bicycle:
         while True:
             # run loop
             if self._autobalance:
-                # TODO: figure out how to break out of the while loop!
                 print(f'Balancing... {i}')
                 time.sleep(1)
                 i += 1
             else:
                 break
 
-    def disengageAutobalance(self):
-        """Disengage the autobalance system"""
-        self._autobalance = False # this should stop 
+    def disengage_autobalance(self):
+        """Disengage the autobalance system (scaffolding)"""
+        self._autobalance = False
         print("Disengaging autobalance system")
 
-
-class Control:
-    def __init__(self):
+    def stabilize(self, case):
         """
-        The control system responsible for stabilizing the bicycle
+        Scaffolding for an entry point based on some case
+
+        :param case: "Case" is used ambiguously here to mean the context by which a specific equation would be engaged.
+        For example, we might use Eq 16 (see report) with tilt angle and tilt velocity as inputs in a specific context,
+        but an entirely different physics model in a different context.
+
+        Proposed steps for implementing the control system include:
+        (1) Some asynchronous/multiprocessing Python execution, such that the solver can respond dynamically to
+        the changing tilt angle in a separate thread
+        (2) Some mechanism to continuously output data about the bicycle's structure/point vectors, as well as
+        re-render the visualization
+
+        Due to the complexity of this programming problem, the integration between the control system and the digital
+        bicycle has not yet been finished. However, this scaffolding has been left as a future project.
         """
-        
-        def stabilize(self, case):
-            """
-            Entry point
-            """
-            if case == 1:
-                self._model1solver()
-            else:
-                self.model2solver()
+        if case == 1:
+            self._model_1_solver()
+        else:
+            self._model_2_solver()
 
-        def _model1solver():
-            return True
+    def _model_1_solver(self):
+        """Scaffolding for a solver under some condition X"""
+        pass
 
-        def _model2solver():
-            return True
-
-
+    def _model_2_solver(self):
+        """Scaffolding for a solver under some condition Y"""
+        pass
 
 
 if __name__ == '__main__':
+    """
+    Example script for assembly of the digital bicycle, applying some transformations, and visualizing it.
+    """
     bike = Bicycle()
 
     # setup visualization to inspect bicycle
     fig, ax = plt.subplots(subplot_kw={'projection': '3d'})
 
-    # Lets start by building the bike's frame and wheels
+    # building the bike's frame and wheels
     bike.assemble()
-    print('trail:', bike.trail()) # get the trail after assembly
 
-    # tilt the bike 15 degrees (as an example)
+    # get the trail after assembly
+    print('trail:', bike.trail())
+
+    # tilt the bike 15 degrees
     bike.tilt(15)
 
-    print('map: ', bike.map()) # see how our points (e.g. COM) have changed
+    # see how our points (e.g. COM) have changed after the transformation
+    print('map: ', bike.map())
 
     # render the bicycle
     bike.visualize(ax)

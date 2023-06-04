@@ -4,7 +4,8 @@ This repository contains the code, research materials, and final report for a
 physics independent study project on bicycle dynamics I conducted while at
 Grinnell College.
 
-Structure The repository has the following structure:
+## Structure
+The repository has the following structure:
 
 `research`: This directory contains a collection of PDF articles that explore
 different aspects of bicycle dynamics. These articles served as valuable
